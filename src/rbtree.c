@@ -175,7 +175,38 @@ node_t *rbtree_insert(rbtree *t, const key_t key)
 node_t *rbtree_find(const rbtree *t, const key_t key)
 {
   // TODO: implement find
-  return t->root;
+  node_t *findptr = (node_t *)malloc(sizeof(node_t));
+  // 트리에 노드가 없으면
+  if (t->root == t->nil)
+  {
+    return NULL;
+  }
+  // 트리에 노드가 있으면, findptr의 초기값을 root 노드로
+  findptr = t->root;
+  while (findptr != t->nil)
+  {
+    if (findptr->key == key)
+    {
+      break;
+    }
+    else if (findptr->key > key)
+    {
+      findptr = findptr->left;
+    }
+    else
+    {
+      findptr = findptr->right;
+    }
+  }
+  // 트리에 해당 노드가 없으면
+  if (findptr->key != key)
+  {
+    return NULL;
+  }
+  else
+  {
+    return findptr;
+  }
 }
 
 node_t *rbtree_min(const rbtree *t)
