@@ -212,13 +212,37 @@ node_t *rbtree_find(const rbtree *t, const key_t key)
 node_t *rbtree_min(const rbtree *t)
 {
   // TODO: implement find
-  return t->root;
+  if (t->root == t->nil)
+  {
+    return NULL;
+  }
+  node_t *findptr = (node_t *)malloc(sizeof(node_t));
+  node_t *parentptr = (node_t *)malloc(sizeof(node_t));
+  findptr = t->root;
+  while (findptr != t->nil)
+  {
+    parentptr = findptr;
+    findptr = findptr->left;
+  }
+  return parentptr;
 }
 
 node_t *rbtree_max(const rbtree *t)
 {
   // TODO: implement find
-  return t->root;
+  if (t->root == t->nil)
+  {
+    return NULL;
+  }
+  node_t *findptr = (node_t *)malloc(sizeof(node_t));
+  node_t *parentptr = (node_t *)malloc(sizeof(node_t));
+  findptr = t->root;
+  while (findptr != t->nil)
+  {
+    parentptr = findptr;
+    findptr = findptr->right;
+  }
+  return parentptr;
 }
 
 int rbtree_erase(rbtree *t, node_t *p)
