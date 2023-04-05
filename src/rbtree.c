@@ -16,10 +16,26 @@ rbtree *new_rbtree(void)
   return p;
 }
 
+void delete_rbtree_node(rbtree *t, node_t *n)
+{
+  if (n == t->nil)
+  {
+    return;
+  }
+  delete_rbtree_node(t, n->left);
+  delete_rbtree_node(t, n->right);
+  free(n);
+}
+
 // RB 트리 구조체가 차지했던 메모리 반환
 void delete_rbtree(rbtree *t)
 {
   // TODO: reclaim the tree nodes's memory
+  if (t->root != t->nil)
+  {
+    delete_rbtree_node(t, t->root);
+  }
+  free(t->nil);
   free(t);
 }
 
@@ -175,7 +191,7 @@ node_t *rbtree_insert(rbtree *t, const key_t key)
 node_t *rbtree_find(const rbtree *t, const key_t key)
 {
   // TODO: implement find
-  node_t *findptr = (node_t *)malloc(sizeof(node_t));
+  node_t *findptr;
   // 트리에 노드가 없으면
   if (t->root == t->nil)
   {
@@ -187,7 +203,7 @@ node_t *rbtree_find(const rbtree *t, const key_t key)
   {
     if (findptr->key == key)
     {
-      break;
+      return findptr;
     }
     else if (findptr->key > key)
     {
@@ -199,14 +215,7 @@ node_t *rbtree_find(const rbtree *t, const key_t key)
     }
   }
   // 트리에 해당 노드가 없으면
-  if (findptr->key != key)
-  {
-    return NULL;
-  }
-  else
-  {
-    return findptr;
-  }
+  return NULL;
 }
 
 node_t *rbtree_min(const rbtree *t)
@@ -216,9 +225,8 @@ node_t *rbtree_min(const rbtree *t)
   {
     return NULL;
   }
-  node_t *findptr = (node_t *)malloc(sizeof(node_t));
-  node_t *parentptr = (node_t *)malloc(sizeof(node_t));
-  findptr = t->root;
+  node_t *parentptr;
+  node_t *findptr = t->root;
   while (findptr != t->nil)
   {
     parentptr = findptr;
@@ -235,9 +243,8 @@ node_t *rbtree_sub_min(const rbtree *t, node_t *r)
   {
     return r;
   }
-  node_t *findptr = (node_t *)malloc(sizeof(node_t));
-  node_t *parentptr = (node_t *)malloc(sizeof(node_t));
-  findptr = r;
+  node_t *parentptr;
+  node_t *findptr = r;
   while (findptr != t->nil)
   {
     parentptr = findptr;
@@ -253,9 +260,8 @@ node_t *rbtree_max(const rbtree *t)
   {
     return NULL;
   }
-  node_t *findptr = (node_t *)malloc(sizeof(node_t));
-  node_t *parentptr = (node_t *)malloc(sizeof(node_t));
-  findptr = t->root;
+  node_t *parentptr;
+  node_t *findptr = t->root;
   while (findptr != t->nil)
   {
     parentptr = findptr;
@@ -264,7 +270,7 @@ node_t *rbtree_max(const rbtree *t)
   return parentptr;
 }
 
-rbtree *rbtree_transplant(rbtree *t, node_t *from, node_t *to)
+void rbtree_transplant(rbtree *t, node_t *from, node_t *to)
 {
   if (from->parent == t->nil)
   {
@@ -279,13 +285,13 @@ rbtree *rbtree_transplant(rbtree *t, node_t *from, node_t *to)
     from->parent->right = to;
   }
   to->parent = from->parent;
-  return t;
+  return;
 }
 
 // 삭제 후 흐트러진 트리 조정
 void rbtree_erase_fixup(rbtree *t, node_t *x)
 {
-  node_t *siblingptr = (node_t *)malloc(sizeof(node_t));
+  node_t *siblingptr;
   while (x != t->root && x->color == RBTREE_BLACK)
   {
     if (x == x->parent->left)
@@ -358,11 +364,11 @@ void rbtree_erase_fixup(rbtree *t, node_t *x)
 int rbtree_erase(rbtree *t, node_t *p) // 🚨 void로 반환해도 됨 / 왜 리턴 타입이 int?
 {
   // TODO: implement erase
-  node_t *yptr = (node_t *)malloc(sizeof(node_t));
-  yptr = p;
-  color_t y_original_color = (color_t)malloc(sizeof(color_t));
-  y_original_color = yptr->color;
-  node_t *xptr = (node_t *)malloc(sizeof(node_t));
+  // node_t *yptr = (node_t *)malloc(sizeof(node_t));
+  node_t *yptr = p;
+  color_t y_original_color = yptr->color;
+  // node_t *xptr = (node_t *)malloc(sizeof(node_t));
+  node_t *xptr = p;
   if (p->left == t->nil)
   {
     xptr = p->right;
@@ -401,8 +407,23 @@ int rbtree_erase(rbtree *t, node_t *p) // 🚨 void로 반환해도 됨 / 왜 �
   return 0;
 }
 
+void inorder(node_t *root, node_t *nil, key_t *arr, int *index)
+{
+  if (root == nil)
+  {
+    return;
+  }
+  inorder(root->left, nil, arr, index);  // 현재 루트 기준 왼쪽 서브트리
+  arr[(*index)++] = root->key;           // 현재 루트의 값을 배열에 저장
+  inorder(root->right, nil, arr, index); // 현재 루트 기준 오른쪽 서브트리
+}
+
+// 중위순회
 int rbtree_to_array(const rbtree *t, key_t *arr, const size_t n)
 {
   // TODO: implement to_array
+  int *index = (int *)calloc(1, sizeof(int)); // 배열의 인덱스를 가리킬 포인터
+  inorder(t->root, t->nil, arr, index);       // 중위순회
+  free(index);                                // 인덱스 해제
   return 0;
 }
