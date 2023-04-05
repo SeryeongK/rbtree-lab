@@ -227,6 +227,25 @@ node_t *rbtree_min(const rbtree *t)
   return parentptr;
 }
 
+// 가능하면 위의 함수로 병합
+node_t *rbtree_sub_min(const rbtree *t, node_t *r)
+{
+  // TODO: implement find
+  if (r == t->nil)
+  {
+    return r;
+  }
+  node_t *findptr = (node_t *)malloc(sizeof(node_t));
+  node_t *parentptr = (node_t *)malloc(sizeof(node_t));
+  findptr = r;
+  while (findptr != t->nil)
+  {
+    parentptr = findptr;
+    findptr = findptr->left;
+  }
+  return parentptr;
+}
+
 node_t *rbtree_max(const rbtree *t)
 {
   // TODO: implement find
@@ -245,9 +264,140 @@ node_t *rbtree_max(const rbtree *t)
   return parentptr;
 }
 
-int rbtree_erase(rbtree *t, node_t *p)
+rbtree *rbtree_transplant(rbtree *t, node_t *from, node_t *to)
+{
+  if (from->parent == t->nil)
+  {
+    t->root = to;
+  }
+  else if (from == from->parent->left)
+  {
+    from->parent->left = to;
+  }
+  else
+  {
+    from->parent->right = to;
+  }
+  to->parent = from->parent;
+  return t;
+}
+
+// 삭제 후 흐트러진 트리 조정
+void rbtree_erase_fixup(rbtree *t, node_t *x)
+{
+  node_t *siblingptr = (node_t *)malloc(sizeof(node_t));
+  while (x != t->root && x->color == RBTREE_BLACK)
+  {
+    if (x == x->parent->left)
+    {
+      siblingptr = x->parent->right;
+      if (siblingptr->color == RBTREE_RED)
+      {
+        siblingptr->color = RBTREE_BLACK;
+        x->parent->color = RBTREE_RED;
+        left_rotate_rbtree(t, x->parent);
+        siblingptr = x->parent->right;
+      }
+      if (siblingptr->left->color == RBTREE_BLACK && siblingptr->right->color == RBTREE_BLACK)
+      {
+        siblingptr->color = RBTREE_RED;
+        x = x->parent;
+      }
+      else
+      {
+        if (siblingptr->right->color == RBTREE_BLACK)
+        {
+          siblingptr->left->color = RBTREE_BLACK;
+          siblingptr->color = RBTREE_RED;
+          right_rotate_rbtree(t, siblingptr);
+          siblingptr = x->parent->right;
+        }
+        siblingptr->color = x->parent->color;
+        x->parent->color = RBTREE_BLACK;
+        siblingptr->right->color = RBTREE_BLACK;
+        left_rotate_rbtree(t, x->parent);
+        x = t->root;
+      }
+    }
+    else
+    {
+      siblingptr = x->parent->left;
+      if (siblingptr->color == RBTREE_RED)
+      {
+        siblingptr->color = RBTREE_BLACK;
+        x->parent->color = RBTREE_RED;
+        right_rotate_rbtree(t, x->parent);
+        siblingptr = x->parent->left;
+      }
+      if (siblingptr->right->color == RBTREE_BLACK && siblingptr->left->color == RBTREE_BLACK)
+      {
+        siblingptr->color = RBTREE_RED;
+        x = x->parent;
+      }
+      else
+      {
+        if (siblingptr->left->color == RBTREE_BLACK)
+        {
+          siblingptr->right->color = RBTREE_BLACK;
+          siblingptr->color = RBTREE_RED;
+          left_rotate_rbtree(t, siblingptr);
+          siblingptr = x->parent->left;
+        }
+        siblingptr->color = x->parent->color;
+        x->parent->color = RBTREE_BLACK;
+        siblingptr->left->color = RBTREE_BLACK;
+        right_rotate_rbtree(t, x->parent);
+        x = t->root;
+      }
+    }
+  }
+  x->color = RBTREE_BLACK;
+}
+
+// RB 트리 내부의 ptr로 지정된 노드를 삭제하고 메모리 반환
+int rbtree_erase(rbtree *t, node_t *p) // 🚨 void로 반환해도 됨 / 왜 리턴 타입이 int?
 {
   // TODO: implement erase
+  node_t *yptr = (node_t *)malloc(sizeof(node_t));
+  yptr = p;
+  color_t y_original_color = (color_t)malloc(sizeof(color_t));
+  y_original_color = yptr->color;
+  node_t *xptr = (node_t *)malloc(sizeof(node_t));
+  if (p->left == t->nil)
+  {
+    xptr = p->right;
+    rbtree_transplant(t, p, p->right);
+  }
+  else if (p->right == t->nil)
+  {
+    xptr = p->left;
+    rbtree_transplant(t, p, p->left);
+  }
+  else
+  {
+    yptr = rbtree_sub_min(t, p->right);
+    y_original_color = yptr->color;
+    xptr = yptr->right;
+    if (yptr != p->right)
+    {
+      rbtree_transplant(t, yptr, yptr->right);
+      yptr->right = p->right;
+      yptr->right->parent = yptr;
+    }
+    else
+    {
+      xptr->parent = yptr;
+    }
+    rbtree_transplant(t, p, yptr);
+    yptr->left = p->left;
+    yptr->left->parent = yptr;
+    yptr->color = p->color;
+  }
+  if (y_original_color == RBTREE_BLACK)
+  {
+    rbtree_erase_fixup(t, xptr);
+  }
+  free(p);
   return 0;
 }
 
